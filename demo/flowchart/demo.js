@@ -89,44 +89,60 @@ jsPlumb.ready(function() {
 			}
 		};
 
-	function getTangent(start, end, pathOffset, pos) {
-		// for now we suppose lines are vertical or horizontal, but never leaning.
-		// (If this is not so, this could be easily generalized.)
-		var distance;
-		if (start[0] == end[0]) {
-			// vertical
-			var x = start[0] + pathOffset[0];
-			var height = end[1] - start[1];
-			distance = Math.abs(pos[0] - x);
-			return {
-				pos: [x, pos[1]],
-				size: Math.abs(height),
-				delta: [distance, 0],
-				distance: distance,
-				percent: (pos[1] - pathOffset[1] - start[1]) / height
-			};
-		} else if (start[1] == end[1]) {
-			// horizontal
-			var y = start[1] + pathOffset[1];
-			var width = end[0] - start[0];
-			distance = Math.abs(pos[1] - y);
-			return {
-				pos: [pos[0], y],
-				size: Math.abs(width),
-				delta: [0, distance],
-				distance: distance,
-				percent: (pos[0] - pathOffset[0] - start[0]) / width
-			};
-		} else {
-			throw new Error('Fatal, unsupported path element');
-		}
+	function getAbs(pos) {
+		return Math.sqrt(Math.pow(pos[0], 2) + Math.pow(pos[1], 2));
 	}
+
+	function findOrthogonalProjection(start, end, pathOffset, pos) {
+		var isValid = false;
+		// as all start/end points are relative to the path offset,
+		// we also handle our point in this coordinate system.
+		rPos = [
+			pos[0] - pathOffset[0],
+			pos[1] - pathOffset[1]
+		];
+		if (start[0] == end[0] && start[1] == end[1]) {
+			start[0] -= 0.00001;
+		}
+		var percent = ((rPos[0] - start[0]) * (end[0] - start[0])) + ((rPos[1] - start[1]) * (end[1] - start[1]));
+		var percentDenom = Math.pow(end[0] - start[0], 2) + Math.pow(end[1] - start[1], 2);
+		percent /= percentDenom;
+		var projectVector = [
+			percent * (end[0] - start[0]),
+			percent * (end[1] - start[1])
+		];
+		// limitation to snap to the two endpoints, if the closest point is not in start..anend range.
+		if (percent < 0) {
+			percent = 0;
+			projectVector = [0, 0];
+		} else if (percent > 1) {
+			percent = 1;
+			projectVector = end;
+		}
+		// back to pathOffset coordinates
+		var projectPos = [
+			start[0] + projectVector[0] + pathOffset[0],
+			start[1] + projectVector[1] + pathOffset[1]
+		];
+		return {
+			// the tangent point, which is the closest point of the start-end section to the point
+			pos: projectPos,
+			// the size of the start-end section
+			size: Math.sqrt(percentDenom),
+			// Distance between the point and its tangent.
+			distance: getAbs([projectPos[0] - pos[0], projectPos[1] - pos[1]]),
+			// The distance from start to the projection point, 0 <= ... <= (end - start)
+			// XXX find better name?
+			vector: getAbs(projectVector)
+		};
+	}
+
 	function getLabelPosition(connection, pos) {
 		var pathElems = connection.connector.getPath();
 		var canvas = connection.connector.canvas;
 		var pathOffset = [canvas.offsetLeft, canvas.offsetTop];
 		var closest;
-		var tangentPoint;
+		var totalVector;
 		var totalSize = 0;
 		for (var i = 0; i < pathElems.length; i++) {
 			var pathElem = pathElems[i];
@@ -139,16 +155,15 @@ jsPlumb.ready(function() {
 				// ... expect, use the end for the last element.
 				end = pathElem.end;
 			}
-			var tangent = getTangent(pathElem.start, end, pathOffset, pos);
-			if (closest === undefined || tangent.distance < closest.distance) {
-				closest = tangent;
-				// percentage must be minmaxed
-				tangentPoint = totalSize + closest.size * Math.min(Math.max(closest.percent, 0), 1); 
+			var proj = findOrthogonalProjection(pathElem.start, end, pathOffset, pos);
+			if (closest === undefined || proj.distance < closest.distance) {
+				closest = proj;
+				totalVector = totalSize + proj.vector; 
 			}
-			totalSize += tangent.size;
+			totalSize += proj.size;
 		}
 		// calculate total percent
-		closest.totalPercent = tangentPoint / totalSize;
+		closest.totalPercent = totalVector / totalSize;
 		return closest;
 	}
 
@@ -168,11 +183,13 @@ jsPlumb.ready(function() {
 			var elLabel = label.getElement();
 			instance.draggable(elLabel, {
 				drag: function(params) {
+					// add a 10px offset, XXX no idea where this is coming from
+					var offsetX = 10;
+					var offsetY = 0;
 					// constrain the label to move on the path
 					var closest = getLabelPosition(connInfo.connection, params.pos);
-					elLabel.style.left = closest.pos[0] + 'px';
-					elLabel.style.top = closest.pos[1] + 'px';
-					// elLabel.style.boxShadow = '' + closest.delta[0] + 'px ' + closest.delta[1] + 'px 10px 0 #000';
+					elLabel.style.left = '' + (closest.pos[0] + offsetX) + 'px';
+					elLabel.style.top = '' + (closest.pos[1] + offsetY) + 'px';
 				},
 				stop: function(params) {
 					// set the location
