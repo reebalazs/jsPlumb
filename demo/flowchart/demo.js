@@ -89,6 +89,68 @@ jsPlumb.ready(function() {
 			}
 		};
 
+	//function getDistance(pos1, pos2) {
+	//	return Math.sqrt(Math.pow((pos1[0] - pos2[0]) ^ 2) + Math.pow((pos1[1] - pos2[1]) ^ 2));
+	//}
+	function getTangent(start, end, pathOffset, pos) {
+		// for now we suppose lines are vertical or horizontal, but never leaning.
+		// (If this is not so, this could be easily generalized.)
+		if (start[0] == end[0]) {
+			// vertical
+			var x = start[0] + pathOffset[0];
+			var height = end[1] - start[1];
+			return {
+				pos: [x, pos[1]],
+				size: Math.abs(height),
+				distance: Math.abs(pos[0] - x),
+				percent: (pos[1] - pathOffset[1] - start[1]) / height
+			};
+		} else if (start[1] == end[1]) {
+			// horizontal
+			var y = start[1] + pathOffset[1];
+			var width = end[0] - start[0];
+			return {
+				pos: [pos[0], y],
+				size: Math.abs(width),
+				distance: Math.abs(pos[1] - y),
+				percent: (pos[0] - pathOffset[0] - start[0]) / width
+			};
+		} else {
+			throw new Error('Fatal, unsupported path element');
+		}
+	}
+	function getLabelPosition(connection, pos) {
+		console.log('Drop', pos);
+		var pathElems = connection.connector.getPath();
+		var canvas = connection.connector.canvas;
+		var pathOffset = [canvas.offsetLeft, canvas.offsetTop];
+		var closest;
+		var tangentPoint;
+		var totalSize = 0;
+		for (var i = 0; i < pathElems.length; i++) {
+			var pathElem = pathElems[i];
+			// for the end element, do not use end, but rather the start of the next path elem.
+			// I am not sure what causes this inconsistency, may be a bug in jsplumb?
+			var end;
+			if (i + 1 < pathElems.length ) {
+				end = pathElems[i + 1].start;
+			} else {
+				// ... expect, use the end for the last element.
+				end = pathElem.end;
+			}
+			var tangent = getTangent(pathElem.start, end, pathOffset, pos);
+			if (closest === undefined || tangent.distance < closest.distance) {
+				closest = tangent;
+				// percentage must be minmaxed
+				tangentPoint = totalSize + closest.size * Math.min(Math.max(closest.percent, 0), 1); 
+			}
+			totalSize += tangent.size;
+		}
+		// calculate total percent
+		closest.totalPercent = tangentPoint / totalSize;
+		return closest;
+	}
+
 	// suspend drawing and initialise.
 	instance.doWhileSuspended(function() {
 
@@ -100,10 +162,25 @@ jsPlumb.ready(function() {
 		// listen for new connections; initialise them the same way we initialise the connections at startup.
 		instance.bind("connection", function(connInfo, originalEvent) { 
 			init(connInfo.connection);
+			window.connInfo = connInfo;
+			var label = connInfo.connection.getOverlay('label');
+			var elLabel = label.getElement();
+			instance.draggable(elLabel, {
+				grid: [20, 20],
+				stop: function(params) {
+					var closest = getLabelPosition(connInfo.connection, params.pos);
+					console.log('closest', closest.totalPercent, closest);
+					label.loc = closest.totalPercent;
+					// label.paint();
+					// jsPlumb.repaintEverything();
+				}
+			});
 		});			
 					
 		// make all the window divs draggable						
-		instance.draggable(jsPlumb.getSelector(".flowchart-demo .window"), { grid: [20, 20] });		
+		instance.draggable(jsPlumb.getSelector(".flowchart-demo .window"), {
+			grid: [20, 20]
+		});
 		// THIS DEMO ONLY USES getSelector FOR CONVENIENCE. Use your library's appropriate selector 
 		// method, or document.querySelectorAll:
 		//jsPlumb.draggable(document.querySelectorAll(".window"), { grid: [20, 20] });
@@ -120,10 +197,10 @@ jsPlumb.ready(function() {
 		//
 		// listen for clicks on connections, and offer to delete connections on click.
 		//
-		instance.bind("click", function(conn, originalEvent) {
-			if (confirm("Delete connection from " + conn.sourceId + " to " + conn.targetId + "?"))
-				jsPlumb.detach(conn); 
-		});	
+		//instance.bind("click", function(conn, originalEvent) {
+		//	if (confirm("Delete connection from " + conn.sourceId + " to " + conn.targetId + "?"))
+		//		jsPlumb.detach(conn); 
+		//});	
 		
 		instance.bind("connectionDrag", function(connection) {
 			console.log("connection " + connection.id + " is being dragged. suspendedElement is ", connection.suspendedElement, " of type ", connection.suspendedElementType);
