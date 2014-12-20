@@ -89,30 +89,32 @@ jsPlumb.ready(function() {
 			}
 		};
 
-	//function getDistance(pos1, pos2) {
-	//	return Math.sqrt(Math.pow((pos1[0] - pos2[0]) ^ 2) + Math.pow((pos1[1] - pos2[1]) ^ 2));
-	//}
 	function getTangent(start, end, pathOffset, pos) {
 		// for now we suppose lines are vertical or horizontal, but never leaning.
 		// (If this is not so, this could be easily generalized.)
+		var distance;
 		if (start[0] == end[0]) {
 			// vertical
 			var x = start[0] + pathOffset[0];
 			var height = end[1] - start[1];
+			distance = Math.abs(pos[0] - x);
 			return {
 				pos: [x, pos[1]],
 				size: Math.abs(height),
-				distance: Math.abs(pos[0] - x),
+				delta: [distance, 0],
+				distance: distance,
 				percent: (pos[1] - pathOffset[1] - start[1]) / height
 			};
 		} else if (start[1] == end[1]) {
 			// horizontal
 			var y = start[1] + pathOffset[1];
 			var width = end[0] - start[0];
+			distance = Math.abs(pos[1] - y);
 			return {
 				pos: [pos[0], y],
 				size: Math.abs(width),
-				distance: Math.abs(pos[1] - y),
+				delta: [0, distance],
+				distance: distance,
 				percent: (pos[0] - pathOffset[0] - start[0]) / width
 			};
 		} else {
@@ -120,7 +122,6 @@ jsPlumb.ready(function() {
 		}
 	}
 	function getLabelPosition(connection, pos) {
-		console.log('Drop', pos);
 		var pathElems = connection.connector.getPath();
 		var canvas = connection.connector.canvas;
 		var pathOffset = [canvas.offsetLeft, canvas.offsetTop];
@@ -166,11 +167,21 @@ jsPlumb.ready(function() {
 			var label = connInfo.connection.getOverlay('label');
 			var elLabel = label.getElement();
 			instance.draggable(elLabel, {
-				grid: [20, 20],
-				stop: function(params) {
+				drag: function(params) {
+					// constrain the label to move on the path
 					var closest = getLabelPosition(connInfo.connection, params.pos);
-					console.log('closest', closest.totalPercent, closest);
+					elLabel.style.left = closest.pos[0] + 'px';
+					elLabel.style.top = closest.pos[1] + 'px';
+					// elLabel.style.boxShadow = '' + closest.delta[0] + 'px ' + closest.delta[1] + 'px 10px 0 #000';
+				},
+				stop: function(params) {
+					// set the location
+					var closest = getLabelPosition(connInfo.connection, params.pos);
 					label.loc = closest.totalPercent;
+					// XXX We should repaint here. But the repaint actually
+					// happens only on the next hover. It would be good to do this
+					// immediately.
+					//
 					// label.paint();
 					// jsPlumb.repaintEverything();
 				}
