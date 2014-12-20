@@ -117,7 +117,7 @@ jsPlumb.ready(function() {
 			projectVector = [0, 0];
 		} else if (percent > 1) {
 			percent = 1;
-			projectVector = end;
+			projectVector = [end[0] - start[0], end[1] - start[1]];
 		}
 		// back to pathOffset coordinates
 		var projectPos = [
@@ -140,16 +140,20 @@ jsPlumb.ready(function() {
 	function getLabelPosition(connection, pos) {
 		var pathElems = connection.connector.getPath();
 		var canvas = connection.connector.canvas;
+		// The path offset is relative from the first start point.
+		var pathLength = pathElems.length;
+		//var firstStart = pathLength > 0 ? pathElems[pathLength - 1].start : [0, 0];
+		//var pathOffset = [canvas.offsetLeft + firstStart[0], canvas.offsetTop + firstStart[1]];
 		var pathOffset = [canvas.offsetLeft, canvas.offsetTop];
 		var closest;
 		var totalVector;
 		var totalSize = 0;
-		for (var i = 0; i < pathElems.length; i++) {
+		for (var i = 0; i < pathLength; i++) {
 			var pathElem = pathElems[i];
 			// for the end element, do not use end, but rather the start of the next path elem.
 			// I am not sure what causes this inconsistency, may be a bug in jsplumb?
 			var end;
-			if (i + 1 < pathElems.length ) {
+			if (i + 1 < pathLength ) {
 				end = pathElems[i + 1].start;
 			} else {
 				// ... expect, use the end for the last element.
@@ -183,13 +187,10 @@ jsPlumb.ready(function() {
 			var elLabel = label.getElement();
 			instance.draggable(elLabel, {
 				drag: function(params) {
-					// add a 10px offset, XXX no idea where this is coming from
-					var offsetX = 10;
-					var offsetY = 0;
 					// constrain the label to move on the path
 					var closest = getLabelPosition(connInfo.connection, params.pos);
-					elLabel.style.left = '' + (closest.pos[0] + offsetX) + 'px';
-					elLabel.style.top = '' + (closest.pos[1] + offsetY) + 'px';
+					elLabel.style.left = '' + (closest.pos[0]) + 'px';
+					elLabel.style.top = '' + (closest.pos[1]) + 'px';
 				},
 				stop: function(params) {
 					// set the location
