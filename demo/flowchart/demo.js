@@ -89,6 +89,8 @@ jsPlumb.ready(function() {
 			}
 		};
 
+// XXX BEGIN
+
 	function getAbs(pos) {
 		return Math.sqrt(Math.pow(pos[0], 2) + Math.pow(pos[1], 2));
 	}
@@ -111,7 +113,7 @@ jsPlumb.ready(function() {
 			percent * (end[0] - start[0]),
 			percent * (end[1] - start[1])
 		];
-		// limitation to snap to the two endpoints, if the closest point is not in start..anend range.
+		// limitation to snap to the two endpoints, if the closest point is not in start..end range.
 		if (percent < 0) {
 			percent = 0;
 			projectVector = [0, 0];
@@ -144,7 +146,7 @@ jsPlumb.ready(function() {
 		var pathLength = pathElems.length;
 		//var firstStart = pathLength > 0 ? pathElems[pathLength - 1].start : [0, 0];
 		//var pathOffset = [canvas.offsetLeft + firstStart[0], canvas.offsetTop + firstStart[1]];
-		var pathOffset = [canvas.offsetLeft, canvas.offsetTop];
+		var pathOffset = [canvas.offsetLeft, canvas.offsetTop]; 
 		var closest;
 		var totalVector;
 		var totalSize = 0;
@@ -171,6 +173,46 @@ jsPlumb.ready(function() {
 		return closest;
 	}
 
+	function setupConnection(connInfo) {
+		window.connInfo = connInfo;
+		var label = connInfo.connection.getOverlay('label');
+		var elLabel = label.getElement();
+		instance.draggable(elLabel, {
+			drag: function(params) {
+				// constrain the label to move on the path
+				var closest = getLabelPosition(connInfo.connection, params.pos);
+				elLabel.style.left = '' + (closest.pos[0]) + 'px';
+				elLabel.style.top = '' + (closest.pos[1]) + 'px';
+			},
+			stop: function(params) {
+				// set the location
+				var closest = getLabelPosition(connInfo.connection, params.pos);
+				label.loc = closest.totalPercent;
+				// XXX We should repaint here. But the repaint actually
+				// happens only on the next hover. It would be good to do this
+				// immediately.
+				//
+				// label.paint();
+				// jsPlumb.repaintEverything();
+			}
+		});
+	}
+
+	function makeLabelsDraggable(instance) {
+		// suspend drawing and initialise.
+		instance.doWhileSuspended(function() {
+			// listen for new connections; initialise them the same way we initialise the connections at startup.
+			instance.bind("connection", function(connInfo, originalEvent) { 
+				setupConnection(connInfo);
+			});
+		});
+	}
+
+// XXX END
+
+	// set up draggable labels
+	makeLabelsDraggable(instance);
+
 	// suspend drawing and initialise.
 	instance.doWhileSuspended(function() {
 
@@ -182,28 +224,6 @@ jsPlumb.ready(function() {
 		// listen for new connections; initialise them the same way we initialise the connections at startup.
 		instance.bind("connection", function(connInfo, originalEvent) { 
 			init(connInfo.connection);
-			window.connInfo = connInfo;
-			var label = connInfo.connection.getOverlay('label');
-			var elLabel = label.getElement();
-			instance.draggable(elLabel, {
-				drag: function(params) {
-					// constrain the label to move on the path
-					var closest = getLabelPosition(connInfo.connection, params.pos);
-					elLabel.style.left = '' + (closest.pos[0]) + 'px';
-					elLabel.style.top = '' + (closest.pos[1]) + 'px';
-				},
-				stop: function(params) {
-					// set the location
-					var closest = getLabelPosition(connInfo.connection, params.pos);
-					label.loc = closest.totalPercent;
-					// XXX We should repaint here. But the repaint actually
-					// happens only on the next hover. It would be good to do this
-					// immediately.
-					//
-					// label.paint();
-					// jsPlumb.repaintEverything();
-				}
-			});
 		});			
 					
 		// make all the window divs draggable						
