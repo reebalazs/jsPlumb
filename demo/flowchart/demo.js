@@ -139,6 +139,33 @@ jsPlumb.ready(function() {
 		};
 	}
 
+
+	function getLabelPosition2(connection, pos) {
+		var segments = connection.connector.getSegments(),
+			canvas = connection.connector.canvas,
+		 	offset = [pos[0] - canvas.offsetLeft, pos[1] - canvas.offsetTop],
+			segmentLength = segments.length,
+			closest,
+			rojectionWay,
+			totalWay = 0;
+		for (var i = 0; i < segmentLength; i++) {
+			var segment = segments[i],
+				projection = segment.findClosestPointOnPath.apply(null, offset),
+				segmentWay = segment.getLength();
+			if (closest === undefined || projection.d < closest.d) {
+				closest = projection;
+				projectionWay = totalWay + segmentWay * projection.l;
+			}
+			totalWay += segmentWay;
+		}
+		// calculate total percent
+		closest.totalPercent = totalWay / projectionWay;
+		// XXX
+		closest.pos = [closest.x, closest.y];
+		console.log('closest', closest);
+		return closest;
+	}
+
 	function getLabelPosition(connection, pos) {
 		var pathElems = connection.connector.getPath();
 		var canvas = connection.connector.canvas;
@@ -180,7 +207,8 @@ jsPlumb.ready(function() {
 		instance.draggable(elLabel, {
 			drag: function(params) {
 				// constrain the label to move on the path
-				var closest = getLabelPosition(connInfo.connection, params.pos);
+				var closest0 = getLabelPosition(connInfo.connection, params.pos);
+				var closest = getLabelPosition2(connInfo.connection, params.pos);
 				elLabel.style.left = '' + (closest.pos[0]) + 'px';
 				elLabel.style.top = '' + (closest.pos[1]) + 'px';
 			},
