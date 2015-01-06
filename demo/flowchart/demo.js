@@ -91,6 +91,7 @@ jsPlumb.ready(function() {
 
 // XXX BEGIN
 
+/*
 	function getAbs(pos) {
 		return Math.sqrt(Math.pow(pos[0], 2) + Math.pow(pos[1], 2));
 	}
@@ -138,35 +139,7 @@ jsPlumb.ready(function() {
 			vector: getAbs(projectVector)
 		};
 	}
-
-
-	function getLabelPosition2(connection, pos) {
-		var segments = connection.connector.getSegments(),
-			canvas = connection.connector.canvas,
-		 	offset = [pos[0] - canvas.offsetLeft, pos[1] - canvas.offsetTop],
-			segmentLength = segments.length,
-			closest,
-			rojectionWay,
-			totalWay = 0;
-		for (var i = 0; i < segmentLength; i++) {
-			var segment = segments[i],
-				projection = segment.findClosestPointOnPath.apply(null, offset),
-				segmentWay = segment.getLength();
-			if (closest === undefined || projection.d < closest.d) {
-				closest = projection;
-				projectionWay = totalWay + segmentWay * projection.l;
-			}
-			totalWay += segmentWay;
-		}
-		// calculate total percent
-		closest.totalPercent = totalWay / projectionWay;
-		// XXX
-		closest.pos = [closest.x, closest.y];
-		console.log('closest', closest);
-		return closest;
-	}
-
-	function getLabelPosition(connection, pos) {
+	function getLabelPosition0(connection, pos) {
 		var pathElems = connection.connector.getPath();
 		var canvas = connection.connector.canvas;
 		// The path offset is relative from the first start point.
@@ -199,6 +172,31 @@ jsPlumb.ready(function() {
 		closest.totalPercent = totalVector / totalSize;
 		return closest;
 	}
+*/
+
+	function getLabelPosition(connection, x, y) {
+		var segments = connection.connector.getSegments(),
+			canvas = connection.connector.canvas,
+		 	//offset = [x - canvas.offsetLeft, y - canvas.offsetTop],
+			offset = [x, y],
+			segmentLength = segments.length,
+			closest,
+			rojectionWay,
+			totalWay = 0;
+		for (var i = 0; i < segmentLength; i++) {
+			var segment = segments[i],
+				projection = segment.findClosestPointOnPath.apply(null, offset),
+				segmentWay = segment.getLength();
+			if (closest === undefined || projection.d < closest.d) {
+				closest = projection;
+				projectionWay = totalWay + segmentWay * projection.l;
+			}
+			totalWay += segmentWay;
+		}
+		// calculate total percent
+		closest.totalPercent = totalWay / projectionWay;
+		return closest;
+	}
 
 	function setupConnection(connInfo) {
 		window.connInfo = connInfo;
@@ -207,14 +205,18 @@ jsPlumb.ready(function() {
 		instance.draggable(elLabel, {
 			drag: function(params) {
 				// constrain the label to move on the path
-				var closest0 = getLabelPosition(connInfo.connection, params.pos);
-				var closest = getLabelPosition2(connInfo.connection, params.pos);
-				elLabel.style.left = '' + (closest.pos[0]) + 'px';
-				elLabel.style.top = '' + (closest.pos[1]) + 'px';
+				//var closest0 = getLabelPosition(connInfo.connection, params.pos);
+				console.log('pos', params.pos);
+				//var closest = getLabelPosition(connInfo.connection, params.offsetX, params.offsetY);
+				var closest = getLabelPosition(connInfo.connection, params.pos[0], params.pos[1]);
+
+				elLabel.style.left = '' + (closest.x) + 'px';
+				elLabel.style.top = '' + (closest.y) + 'px';
+				console.log('closest', closest.x, closest.y);
 			},
 			stop: function(params) {
 				// set the location
-				var closest = getLabelPosition(connInfo.connection, params.pos);
+				var closest = getLabelPosition(connInfo.connection, params.offsetX, params.offsetY);
 				label.loc = closest.totalPercent;
 				// XXX We should repaint here. But the repaint actually
 				// happens only on the next hover. It would be good to do this
