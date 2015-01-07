@@ -57,7 +57,7 @@
     // suspend drawing and initialise.
     instance.doWhileSuspended(function() {
       // listen for new connections; initialise them the same way we initialise the connections at startup.
-      instance.bind("connection", function(connInfo, originalEvent) { 
+      instance.bind('connection', function(connInfo, originalEvent) { 
         setupConnection(instance, connInfo);
       });
     });
