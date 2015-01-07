@@ -177,13 +177,12 @@ jsPlumb.ready(function() {
 	function getLabelPosition(connection, x, y) {
 		var segments = connection.connector.getSegments(),
 			canvas = connection.connector.canvas,
-		 	//offset = [x - canvas.offsetLeft, y - canvas.offsetTop],
-			offset = [x, y],
-			segmentLength = segments.length,
+			offset = [x - canvas.offsetLeft, y - canvas.offsetTop],
+			// offset = [x, y],
 			closest,
-			rojectionWay,
+			projectionWay,
 			totalWay = 0;
-		for (var i = 0; i < segmentLength; i++) {
+		for (var i = 0; i < segments.length; i++) {
 			var segment = segments[i],
 				projection = segment.findClosestPointOnPath.apply(null, offset),
 				segmentWay = segment.getLength();
@@ -194,7 +193,13 @@ jsPlumb.ready(function() {
 			totalWay += segmentWay;
 		}
 		// calculate total percent
-		closest.totalPercent = totalWay / projectionWay;
+		console.log('closest', totalWay, projectionWay);
+
+		closest.totalPercent = projectionWay / totalWay;
+		// back to coordinates
+		// XXX figure out how to do this
+		closest.x = closest.x + canvas.offsetLeft;
+		closest.y = closest.y + canvas.offsetTop;
 		return closest;
 	}
 
@@ -205,25 +210,18 @@ jsPlumb.ready(function() {
 		instance.draggable(elLabel, {
 			drag: function(params) {
 				// constrain the label to move on the path
-				//var closest0 = getLabelPosition(connInfo.connection, params.pos);
-				console.log('pos', params.pos);
+				// XXX figure out how to get the offset properly, regardless if vanilla or jQuery flavor
 				//var closest = getLabelPosition(connInfo.connection, params.offsetX, params.offsetY);
 				var closest = getLabelPosition(connInfo.connection, params.pos[0], params.pos[1]);
-
 				elLabel.style.left = '' + (closest.x) + 'px';
 				elLabel.style.top = '' + (closest.y) + 'px';
-				console.log('closest', closest.x, closest.y);
 			},
 			stop: function(params) {
 				// set the location
-				var closest = getLabelPosition(connInfo.connection, params.offsetX, params.offsetY);
+				var closest = getLabelPosition(connInfo.connection, params.pos[0], params.pos[1]);
 				label.loc = closest.totalPercent;
-				// XXX We should repaint here. But the repaint actually
-				// happens only on the next hover. It would be good to do this
-				// immediately.
-				//
-				// label.paint();
-				// jsPlumb.repaintEverything();
+				// Repaint the label
+				label.component.repaint();
 			}
 		});
 	}
