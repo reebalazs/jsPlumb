@@ -91,101 +91,20 @@ jsPlumb.ready(function() {
 
 // XXX BEGIN
 
-/*
-	function getAbs(pos) {
-		return Math.sqrt(Math.pow(pos[0], 2) + Math.pow(pos[1], 2));
-	}
-
-	function findOrthogonalProjection(start, end, pathOffset, pos) {
-		var isValid = false;
-		// as all start/end points are relative to the path offset,
-		// we also handle our point in this coordinate system.
-		rPos = [
-			pos[0] - pathOffset[0],
-			pos[1] - pathOffset[1]
-		];
-		if (start[0] == end[0] && start[1] == end[1]) {
-			start[0] -= 0.00001;
-		}
-		var percent = ((rPos[0] - start[0]) * (end[0] - start[0])) + ((rPos[1] - start[1]) * (end[1] - start[1]));
-		var percentDenom = Math.pow(end[0] - start[0], 2) + Math.pow(end[1] - start[1], 2);
-		percent /= percentDenom;
-		var projectVector = [
-			percent * (end[0] - start[0]),
-			percent * (end[1] - start[1])
-		];
-		// limitation to snap to the two endpoints, if the closest point is not in start..end range.
-		if (percent < 0) {
-			percent = 0;
-			projectVector = [0, 0];
-		} else if (percent > 1) {
-			percent = 1;
-			projectVector = [end[0] - start[0], end[1] - start[1]];
-		}
-		// back to pathOffset coordinates
-		var projectPos = [
-			start[0] + projectVector[0] + pathOffset[0],
-			start[1] + projectVector[1] + pathOffset[1]
-		];
-		return {
-			// the tangent point, which is the closest point of the start-end section to the point
-			pos: projectPos,
-			// the size of the start-end section
-			size: Math.sqrt(percentDenom),
-			// Distance between the point and its tangent.
-			distance: getAbs([projectPos[0] - pos[0], projectPos[1] - pos[1]]),
-			// The distance from start to the projection point, 0 <= ... <= (end - start)
-			// XXX find better name?
-			vector: getAbs(projectVector)
-		};
-	}
-	function getLabelPosition0(connection, pos) {
-		var pathElems = connection.connector.getPath();
-		var canvas = connection.connector.canvas;
-		// The path offset is relative from the first start point.
-		var pathLength = pathElems.length;
-		//var firstStart = pathLength > 0 ? pathElems[pathLength - 1].start : [0, 0];
-		//var pathOffset = [canvas.offsetLeft + firstStart[0], canvas.offsetTop + firstStart[1]];
-		var pathOffset = [canvas.offsetLeft, canvas.offsetTop]; 
-		var closest;
-		var totalVector;
-		var totalSize = 0;
-		for (var i = 0; i < pathLength; i++) {
-			var pathElem = pathElems[i];
-			// for the end element, do not use end, but rather the start of the next path elem.
-			// I am not sure what causes this inconsistency, may be a bug in jsplumb?
-			var end;
-			if (i + 1 < pathLength ) {
-				end = pathElems[i + 1].start;
-			} else {
-				// ... expect, use the end for the last element.
-				end = pathElem.end;
-			}
-			var proj = findOrthogonalProjection(pathElem.start, end, pathOffset, pos);
-			if (closest === undefined || proj.distance < closest.distance) {
-				closest = proj;
-				totalVector = totalSize + proj.vector; 
-			}
-			totalSize += proj.size;
-		}
-		// calculate total percent
-		closest.totalPercent = totalVector / totalSize;
-		return closest;
-	}
-*/
-
 	function getLabelPosition(connection, x, y) {
 		var segments = connection.connector.getSegments(),
 			canvas = connection.connector.canvas,
-			offset = [x - canvas.offsetLeft, y - canvas.offsetTop],
-			// offset = [x, y],
+			offsetX = x - canvas.offsetLeft,
+			offsetY = y - canvas.offsetTop,
 			closest,
 			projectionWay,
 			totalWay = 0;
 		for (var i = 0; i < segments.length; i++) {
 			var segment = segments[i],
-				projection = segment.findClosestPointOnPath.apply(null, offset),
+				projection = segment.findClosestPointOnPath(offsetX, offsetY),
 				segmentWay = segment.getLength();
+			// Calculate projectionWay, as the distance that the label travels
+			// within the full available length of the totalWay.
 			if (closest === undefined || projection.d < closest.d) {
 				closest = projection;
 				projectionWay = totalWay + segmentWay * projection.l;
@@ -193,8 +112,6 @@ jsPlumb.ready(function() {
 			totalWay += segmentWay;
 		}
 		// calculate total percent
-		console.log('closest', totalWay, projectionWay);
-
 		closest.totalPercent = projectionWay / totalWay;
 		// back to coordinates
 		// XXX figure out how to do this
@@ -208,17 +125,16 @@ jsPlumb.ready(function() {
 		var label = connInfo.connection.getOverlay('label');
 		var elLabel = label.getElement();
 		instance.draggable(elLabel, {
-			drag: function(params) {
-				// constrain the label to move on the path
-				// XXX figure out how to get the offset properly, regardless if vanilla or jQuery flavor
-				//var closest = getLabelPosition(connInfo.connection, params.offsetX, params.offsetY);
-				var closest = getLabelPosition(connInfo.connection, params.pos[0], params.pos[1]);
+			drag: function(evt) {
+				var pos =  jsPlumb.getUIPosition(arguments, jsPlumb.getZoom());
+				var closest = getLabelPosition(connInfo.connection, pos.left, pos.top);
 				elLabel.style.left = '' + (closest.x) + 'px';
 				elLabel.style.top = '' + (closest.y) + 'px';
 			},
-			stop: function(params) {
+			stop: function(evt) {
 				// set the location
-				var closest = getLabelPosition(connInfo.connection, params.pos[0], params.pos[1]);
+				var pos =  jsPlumb.getUIPosition(arguments, jsPlumb.getZoom());
+				var closest = getLabelPosition(connInfo.connection, pos.left, pos.top);
 				label.loc = closest.totalPercent;
 				// Repaint the label
 				label.component.repaint();
