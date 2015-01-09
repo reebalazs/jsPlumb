@@ -32,10 +32,10 @@
     instance.draggable(elLabel, {
       drag: function(evt) {
         var pos =  jsPlumb.getUIPosition(arguments, jsPlumb.getZoom());
-        var canvas = elLabel.canvas;
-        var canvasLeft = parseInt(canvas.style.left),
-          canvasTop = parseInt(canvas.style.top);
-        var closest = getLabelPosition(connection, pos.left - canvasLeft, pos.top - canvasTop);
+        var canvas = connection.canvas;
+        var offsetLeft = parseInt(canvas.style.left),
+          offsetTop = parseInt(canvas.style.top);
+        var closest = getLabelPosition(connection, pos.left - offsetLeft, pos.top - offsetTop);
         // Store the label's position, and repaint it.
         label.loc = closest.totalPercent;
         if (!instance.isSuspendDrawing()) {
