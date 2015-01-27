@@ -1989,9 +1989,6 @@
             if (_suspendDrawing && !timestamp) timestamp = _suspendedAt;
             if (!recalc) {
                 if (timestamp && timestamp === offsetTimestamps[elId]) {
-                		var x = {o:params.offset || offsets[elId], s:sizes[elId]};
-                		///console.log('OBJECTXXX', x.o, x.s);
-
                     return {o:params.offset || offsets[elId], s:sizes[elId]};
                 }
             }

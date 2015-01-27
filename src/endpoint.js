@@ -451,7 +451,6 @@
                 var start = function() {    
                 // drag might have started on an endpoint that is not actually a source, but which has
                 // one or more connections.
-                    console.log('endpoint start');
                     jpc = this.connectorSelector();
                     var _continue = true;
                     // if not enabled, return

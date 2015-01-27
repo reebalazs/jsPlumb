@@ -1,4 +1,4 @@
-   /*
+/*
  * jsPlumb
  * 
  * Title:jsPlumb 1.7.2
@@ -365,9 +365,6 @@
                             overlayExtents.maxX = Math.max(overlayExtents.maxX, this._jsPlumb.overlayPlacements[i].maxX);
                             overlayExtents.minY = Math.min(overlayExtents.minY, this._jsPlumb.overlayPlacements[i].minY);
                             overlayExtents.maxY = Math.max(overlayExtents.maxY, this._jsPlumb.overlayPlacements[i].maxY);
-                            if (o.type == 'Label') {
-                                //console.log('xpaint', this._jsPlumb.overlayPlacements[i], o);
-                            }
                         }
                     }
 

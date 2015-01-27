@@ -210,7 +210,7 @@
                             newX2 = segmentCoords[2] + dx,
                             newY2 = segmentCoords[3] + dy,
                             horizontal = s[4] == "h";
-
+                        
                         // so here we know the new x,y values we would like to set for the start
                         // and end of this segment. but we may not be able to set these values: if this
                         // is the first segment, for example, then we are constrained by how far the anchor
