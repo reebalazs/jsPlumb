@@ -11,7 +11,8 @@
 		[ "chart", "Hierarchical Chart" ],
 		[ "sourcesAndTargets", "Sources and Targets" ],
 		[ "dynamicAnchors", "Dynamic Anchors" ],
-		[ "animation", "Animation" ]
+		[ "animation", "Animation" ],
+		[ "draggableLabels", "Draggable Labels" ]
 	];
 
 	var libs = [

@@ -13,7 +13,7 @@ jsPlumb.ready(function() {
 				cssClass:"aLabel"
 			}]
 		],
-		Container:"flowchart-demo"
+		Container:"draggable-labels-demo"
 	});
 
 	// this is the paint style for the connecting lines..
@@ -81,13 +81,16 @@ jsPlumb.ready(function() {
 	var _addEndpoints = function(toId, sourceAnchors, targetAnchors) {
 			for (var i = 0; i < sourceAnchors.length; i++) {
 				var sourceUUID = toId + sourceAnchors[i];
-				instance.addEndpoint("flowchart" + toId, sourceEndpoint, { anchor:sourceAnchors[i], uuid:sourceUUID });						
+				instance.addEndpoint("draggableLabels" + toId, sourceEndpoint, { anchor:sourceAnchors[i], uuid:sourceUUID });						
 			}
 			for (var j = 0; j < targetAnchors.length; j++) {
 				var targetUUID = toId + targetAnchors[j];
-				instance.addEndpoint("flowchart" + toId, targetEndpoint, { anchor:targetAnchors[j], uuid:targetUUID });						
+				instance.addEndpoint("draggableLabels" + toId, targetEndpoint, { anchor:targetAnchors[j], uuid:targetUUID });						
 			}
 		};
+
+	// set up draggable labels
+	jsPlumb.makeLabelsDraggable(instance);
 
 	// suspend drawing and initialise.
 	instance.doWhileSuspended(function() {
@@ -103,7 +106,9 @@ jsPlumb.ready(function() {
 		});			
 					
 		// make all the window divs draggable						
-		instance.draggable(jsPlumb.getSelector(".flowchart-demo .window"), { grid: [20, 20] });		
+		instance.draggable(jsPlumb.getSelector(".draggable-labels-demo .window"), {
+			grid: [20, 20]
+		});
 		// THIS DEMO ONLY USES getSelector FOR CONVENIENCE. Use your library's appropriate selector 
 		// method, or document.querySelectorAll:
 		//jsPlumb.draggable(document.querySelectorAll(".window"), { grid: [20, 20] });
@@ -120,10 +125,10 @@ jsPlumb.ready(function() {
 		//
 		// listen for clicks on connections, and offer to delete connections on click.
 		//
-		instance.bind("click", function(conn, originalEvent) {
-			if (confirm("Delete connection from " + conn.sourceId + " to " + conn.targetId + "?"))
-				jsPlumb.detach(conn); 
-		});	
+		//instance.bind("click", function(conn, originalEvent) {
+		//	if (confirm("Delete connection from " + conn.sourceId + " to " + conn.targetId + "?"))
+		//		jsPlumb.detach(conn); 
+		//});	
 		
 		instance.bind("connectionDrag", function(connection) {
 			console.log("connection " + connection.id + " is being dragged. suspendedElement is ", connection.suspendedElement, " of type ", connection.suspendedElementType);
